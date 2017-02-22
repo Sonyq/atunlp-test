@@ -21,24 +21,6 @@ class Cliente():
         except:
             print "la conexion al robot fallo IP: ",self.host_ip
 
-    def recv_msg(self):
-        # Read message length and unpack it into an integer
-        raw_msglen = self.recvall(4)
-        if not raw_msglen:
-            return None
-        msglen = struct.unpack('>I', raw_msglen)[0]
-        # Read the message data
-        return self.recvall(msglen)
-
-    def recvall(self, n):
-        # Helper function to recv n bytes or return None if EOF is hit
-        data = ''
-        while len(data) < n:
-            packet = self.sock.recv(n - len(data))
-            if not packet:
-                return None
-            data += packet
-        return data
 
     def entrada(self):
         while self.conecxion == True:

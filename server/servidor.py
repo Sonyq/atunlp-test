@@ -46,10 +46,7 @@ class Server():
 	#for sockets in lista:
 	#	sockets.send(aviso)
         return
-    
-    def send_msg(self,socket,msg):
-        msg =struct.pack(">I",len(msg))+msg
-        socket.sendall(msg)
+
 
     def entrada(self,socket_cliente,datos_cliente):
         msj=""
