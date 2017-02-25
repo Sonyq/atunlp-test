@@ -51,7 +51,7 @@ class Server():
     def entrada(self,socket_cliente,datos_cliente):
         msj=""
         while msj!= "salir":
- #           try:
+            try:
                 msj = socket_cliente.recv(40)
                 if msj == "salir":
                     self.lista_clt.remove(socket_cliente)
@@ -68,13 +68,17 @@ class Server():
                         print variables
                         self.robot.dic_comandos[msj](*variables)
                         
-            #except:
-            #    print "El cliente D/C o tubo un error(entradasv)"
-#		self.lista_clt.remove(socket_cliente)
+            except Exception , err:
+
+                print "El cliente D/C o tubo un error(entradasv)"
+                print repr(err)
+                self.lista_clt.remove(socket_cliente)
+                break
+
 #		self.avisodeconecxion(datos_cliente,False)
-#		msj="salir"
+		        #msj="salir"
 #		GPIO.cleanup()
-#		break
+
     def enviar_foto(self,socket_cliente,foto):
         data=foto.tostring()
         paquete,l_paquete=len(data),1024
@@ -99,6 +103,8 @@ def main():
                     comando=raw_input()
 
         finally:
-                GPIO.cleanup()
+                server.socket.close()
+                server.robot.liberar_cam()
+                #GPIO.cleanup()
 
 main()

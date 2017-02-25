@@ -4,7 +4,7 @@ import json
 import struct
 import numpy as np
 from cv2 import imwrite
-from time import sleep
+from time import sleep , time
 
 
 class Cliente():
@@ -18,8 +18,9 @@ class Cliente():
             self.flag_msj= False
             self.data = ""
             thread.start_new_thread(self.entrada,())
-        except:
+        except Exception, err:
             print "la conexion al robot fallo IP: ",self.host_ip
+            print repr(err)
 
 
     def entrada(self):
@@ -28,15 +29,14 @@ class Cliente():
                 byts = self.sock.recv(5)
                 paquetes = self.sock.recv(int(byts))
                 self.data = self.sock.recv(1024)   #aca cambia los numeritos pal bufer
-                #for i in range(int(paquetes)):
+
                 while len(self.data) != int(paquetes):
                     self.data+=self.sock.recv(1024)  #aca cambia los numeritos pal bufer (same shit)
                 self.flag_msj = True
-            except:
+            except Exception, err:
                 print "Error en la recepcion de datos IP:",self.host_ip
+                print repr(err)
                 self.conecxion = False
-            #self.data = self.recv_msg()
-            #self.flag_msj = True
 
     def enviar(self,msj):
         try:
@@ -51,7 +51,7 @@ class Cliente():
 
 class Robot():
     def __init__(self,host,port=9999):
-        self.clt = Cliente(host,port)
+        self.clt = Cliente(str(host),port)
 
     def frenar(self):
         self.clt.enviar("frenar")
@@ -101,12 +101,26 @@ class Robot():
         self.clt.enviar("tomar_foto")
 
     def guardar_foto(self,dir):
+        #   #debug# #
+        t_start = time()
+        #   #   #   #
+
         self.clt.enviar("guardar_foto")
         while self.clt.flag_msj != True:
             sleep(0.1)
+
+        #   #   #   #
+        t_rec = time()
+        #   #   #   #
+
         self.clt.flag_msj = False
-        print self.clt.data,"-----",len(self.clt.data)
+        #print self.clt.data,"-----",len(self.clt.data)
         imwrite(dir,np.fromstring(self.clt.data,dtype=np.uint8).reshape(480,640,3))
+
+        #   #   #   #
+        t_save = time()
+        print "T para recibir:",(t_rec - t_start),"T guardado:",(t_save - t_rec), "T total:",(t_save - t_start)
+        #   #end#   #
 
     def liberar_cam(self):
         self.clt.enviar("liberar_cam")
