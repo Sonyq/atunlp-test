@@ -125,6 +125,14 @@ class Robot():
     def liberar_cam(self):
         self.clt.enviar("liberar_cam")
 
+    def distancia(self):
+        self.clt.enviar("distancia")
+        while self.clt.flag_msj != True:
+            sleep(0.05)
+
+        self.clt.flag_msj = False
+        return float(self.clt.data)
+
 
 
 

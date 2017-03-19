@@ -13,11 +13,12 @@ class Server():
         self.lista_clt=[]
         self.socket=socket.socket()
         self.host=([l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0])
-        self.socket.bind((self.host, 9994))
+        self.socket.bind((self.host, 9993))
         thread.start_new_thread(self.conection,())
         self.robot = Robot(1)
         self.out_timer=["motor0","motor1","motores","detener","avanzar","retroceder","girarD","girarI"]
-        self.no_var=["frenar","detener","tomar_foto","liberar_cam"]
+        self.no_var=["frenar","detener","tomar_foto","liberar_cam","distancia"]
+        self.return_value=["distancia"]
         self.dic_sv_comandos = {}
 
     def limpiar(self):
@@ -58,9 +59,16 @@ class Server():
                     self.avisodeconecxion(datos_cliente,False)
                     break
                 elif msj == "guardar_foto":
-                    self.enviar_foto(socket_cliente,self.robot.cam.foto)
+                    data = self.robot.cam.foto.tostring()
+                    paquete, l_paquete = len(data), 4096
+                    self.enviar(socket_cliente,data,paquete,l_paquete)
                 elif msj in self.no_var:
-                    self.robot.dic_comandos[msj]()
+                    if msj not in self.return_value:
+                        self.robot.dic_comandos[msj]()
+                    else:
+                        msj = self.robot.dic_comandos[msj]()
+                        msj = str(msj)
+                        self.enviar(socket_cliente,msj,len(msj),len(msj))
                 elif msj in self.robot.dic_comandos.keys():
                     variables=json.loads( socket_cliente.recv(25))
                     if msj in self.out_timer:
@@ -79,14 +87,12 @@ class Server():
 		        #msj="salir"
 #		GPIO.cleanup()
 
-    def enviar_foto(self,socket_cliente,foto):
-        data=foto.tostring()
-        paquete,l_paquete=len(data),1024
-        lista_msj=[data[i:i+l_paquete]for i in range(0,paquete,l_paquete)]
+    def enviar(self,socket_cliente,mensaje,tamanio,long_paquete):
+        lista_msj=[mensaje[i:i+long_paquete]for i in range(0,tamanio,long_paquete)]
         #socket_cliente.send(str(len(str(len(lista_msj)))))
         #socket_cliente.send(str(len(lista_msj)))
-        socket_cliente.send(str(len(str(len(data)))))
-        socket_cliente.send(str(len(data)))
+        socket_cliente.send(str(len(str(tamanio))))
+        socket_cliente.send(str(tamanio))
         
         for msj in lista_msj:
             socket_cliente.send(msj)

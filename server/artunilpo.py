@@ -1,6 +1,7 @@
 #import RPi.GPIO as GPIO
+import thread
 from cv2 import VideoCapture,imwrite
-from time import sleep
+from time import sleep,time
 
 class Camara():
     def __init__(self):
@@ -18,25 +19,78 @@ class Camara():
     def liberar_camara(self):
         self.cam.release()
 
+class Hcsr4():
+    def __init__(self):
+        self.flag_busy = False
+        self.trig = 15
+        self.echo = 14
+        self.delay_recov = 0.08 #sec
+        self.t_out = 27 #milisec
+
+    def flag(self):
+        sleep(self.delay_recov)
+        self.flag_busy = False
+
+    def distancia(self):
+        aux = self.flag_busy
+        while self.flag_busy:
+            sleep(0.03)
+        else:
+            if aux == True:
+                return distance #se estaba midiendo, cuando termine directamente se devuelve la ultima medicion
+            
+        self.flag_busy = True
+
+        GPIO.output(self.trig,True)
+        sleep(0.00001)
+        GPIO.output(self.trig,False)
+
+        #channel = GPIO.wait_for_edge(self.echo,GPIO.RISING,timeout=self.t_out)
+        while not GPIO.input(self.echo):
+            pulse_start = time()
+        
+        #if channel is None:
+        #    thread.start_new_thread(self.flag,())
+        #    return -1 #fuera de rango
+            
+        #channel = GPIO.wait_for_edge(self.echo,GPIO.FALLING,timeout=self.t_out)
+        while GPIO.input(self.echo):
+            pulse_end = time()
+
+        #if channel is None:
+        #    thread.start_new_thread(self.flag,())
+        #    return -1 #fuera de rango     
+
+        pulse_duration = pulse_end - pulse_start
+        distance = round((pulse_duration * 17150),2)
+        if distance < 400 and distance > 2:
+            return distance
+        else:
+            return -1
+
+
 class Robot():
     def __init__(self,compat):
-     #   self.seteo_inicial()
-     #   self.pwm_m0=GPIO.PWM(23,10000)
-     #   self.pwm_m1=GPIO.PWM(24,10000)
+        #self.seteo_inicial()
+        #self.pwm_m0=GPIO.PWM(23,10000)
+        #self.pwm_m1=GPIO.PWM(24,10000)
 
-     #   self.pwm_m0.start(0)
-     #   self.pwm_m1.start(0)
+        #self.pwm_m0.start(0)
+        #self.pwm_m1.start(0)
         self.dic_comandos={"frenar":self.frenar,"motor0":self.motor0,"motor1":self.motor1,"motores":self.motores,"detener":self.detener,
                            "avanzar":self.avanzar,"retroceder":self.retroceder,"girarD":self.girarD,"girarI":self.girarI,
-                           "tomar_foto":self.tomar_foto,"liberar_cam":self.liberar_cam}
+                           "tomar_foto":self.tomar_foto,"distancia":self.distancia}
         self.cam = Camara()
+        self.sensor_distancia = Hcsr4()
+        
     def seteo_inicial(self):
         GPIO.setmode(GPIO.BCM)
         
         GPIO.setup(5,GPIO.IN)
         GPIO.setup(6,GPIO.IN)
-        GPIO.setup(14,GPIO.IN)
-        GPIO.setup(15,GPIO.IN)
+
+        GPIO.setup(14,GPIO.IN) #Hcsr4
+        GPIO.setup(15,GPIO.OUT)
 
         GPIO.setup(27,GPIO.OUT)#cooler
 	
@@ -119,9 +173,7 @@ class Robot():
     def guardar_foto(self,dir):
         self.cam.guardar_foto(dir)
 
-    def liberar_cam(self):
-        self.cam.liberar_camara()
-        
-    
-
-    
+    def distancia(self):
+        dist=self.sensor_distancia.distancia()
+        self.sensor_distancia.flag()
+        return dist
