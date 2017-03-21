@@ -2,6 +2,8 @@
 import thread
 from cv2 import VideoCapture,imwrite
 from time import sleep,time
+#from RPIO import PWM
+import atexit
 
 class Camara():
     def __init__(self):
@@ -72,9 +74,16 @@ class Hcsr4():
 class Robot():
     def __init__(self,compat):
         #self.seteo_inicial()
-        #self.pwm_m0=GPIO.PWM(23,10000)
-        #self.pwm_m1=GPIO.PWM(24,10000)
-
+        #self.pwm_m0=GPIO.PWM(23,4500)
+        #self.pwm_m1=GPIO.PWM(24,4500)
+        #PWM.set_loglevel(PWM.LOG_LEVEL_ERRORS)
+        self.dma_channel = 1
+        #PWM.setup(3)
+        #PWM.init_channel(self.dma_channel,3000)
+        self.offset_value=14
+        self.ciclos=50
+        self.duracion=20
+        
         #self.pwm_m0.start(0)
         #self.pwm_m1.start(0)
         self.dic_comandos={"frenar":self.frenar,"motor0":self.motor0,"motor1":self.motor1,"motores":self.motores,"detener":self.detener,
@@ -93,12 +102,14 @@ class Robot():
         GPIO.setup(15,GPIO.OUT)
 
         GPIO.setup(27,GPIO.OUT)#cooler
-	
+
         GPIO.setup(23,GPIO.OUT)#EN1
         GPIO.setup(24,GPIO.OUT)#EN2
-        GPIO.setup(12,GPIO.OUT)
+
+        GPIO.setup(12,GPIO.OUT) #MA
         GPIO.setup(16,GPIO.OUT)
-        GPIO.setup(20,GPIO.OUT)
+
+        GPIO.setup(20,GPIO.OUT)#MB
         GPIO.setup(21,GPIO.OUT)
 	
     def frenar(self):
@@ -107,11 +118,18 @@ class Robot():
     def motor0(self,vel,t=-1): #velocidad,direccion(0 retroceder, 1 avanzar), tiempo (-1 indefinido)
         if vel>=0:
             GPIO.output(12,True)
-            GPIO.output(20,False)
+            GPIO.output(16,False)
         else:
             GPIO.output(12,False)
-            GPIO.output(20,True)
-        self.pwm_m0.ChangeDutyCycle(abs(vel))
+            GPIO.output(16,True)
+        #self.pwm_m0.ChangeDutyCycle(abs(vel))
+        if vel != 0:
+            velocidad = (abs(vel) // 10) + 10
+            for i in range(0,self.ciclos):
+                PWM.add_channel_pulse(self.dma_channel,23,(self.duracion * i),velocidad)
+        else:
+            PWM.clear_channel_gpio(self.dma_channel,23)
+
         
         if t != -1:
             sleep(t if t >0 else 0)
@@ -119,12 +137,18 @@ class Robot():
 
     def motor1(self,vel,t=-1):
         if vel>=0:
-            GPIO.output(16,True)
+            GPIO.output(20,True)
             GPIO.output(21,False)
         else:
-            GPIO.output(16,False)
+            GPIO.output(20,False)
             GPIO.output(21,True)
-        self.pwm_m1.ChangeDutyCycle(abs(vel))
+        #self.pwm_m1.ChangeDutyCycle(abs(vel))
+        if vel != 0:
+            velocidad = (abs(vel) // 10) + 10
+            for i in range(0,self.ciclos):
+                PWM.add_channel_pulse(self.dma_channel,24,(self.duracion * i),velocidad)
+        else:
+            PWM.clear_channel_gpio(self.dma_channel,24)
         
         if t != -1:
             sleep(t if t >0 else 0)
@@ -133,20 +157,33 @@ class Robot():
     def motores(self,vel1,vel2,t=-1):
         if vel1>=0:
             GPIO.output(12,True)
-            GPIO.output(20,False)
+            GPIO.output(16,False)
         else:
             GPIO.output(12,False)
-            GPIO.output(20,True)
+            GPIO.output(16,True)
             
         if vel2>=0:
-            GPIO.output(16,True)
+            GPIO.output(20,True)
             GPIO.output(21,False)
         else:
-            GPIO.output(16,False)
+            GPIO.output(20,False)
             GPIO.output(21,True)
             
-        self.pwm_m0.ChangeDutyCycle(abs(vel1))
-        self.pwm_m1.ChangeDutyCycle(abs(vel2))
+        #self.pwm_m0.ChangeDutyCycle(abs(vel1))
+        #self.pwm_m1.ChangeDutyCycle(abs(vel2))
+        if vel1 != 0 and vel2 != 0:
+            #porcentaje_vel1= round((abs(vel1) // 10)*0.1, 2)
+            #porcentaje_vel2= round((abs(vel2) // 10)*0.1, 2)
+            #velocidad1 = int((self.duracion * porcentaje_vel1)+int(self.offset_value*(1 - porcentaje_vel1)))
+            #velocidad2 = int((self.duracion * porcentaje_vel2)+int(self.offset_value*(1 - porcentaje_vel2)))
+            velocidad1 = (abs(vel1) // 10) + 10 #thx luci :)
+            velocidad2 = (abs(vel2) // 10) + 10
+            for i in range(0,self.ciclos):
+                PWM.add_channel_pulse(self.dma_channel,23,(self.duracion * i),velocidad1)
+                PWM.add_channel_pulse(self.dma_channel,24,(self.duracion * i),velocidad2)
+        else:
+            PWM.clear_channel_gpio(self.dma_channel,23)
+            PWM.clear_channel_gpio(self.dma_channel,24)
         
         if t != -1:
             sleep(t if t >0 else 0)
@@ -177,3 +214,10 @@ class Robot():
         dist=self.sensor_distancia.distancia()
         self.sensor_distancia.flag()
         return dist
+    
+def cleanup():
+    pass
+    #GPIO.cleanup()
+    #PWM.cleanup()
+
+atexit.register(cleanup)
