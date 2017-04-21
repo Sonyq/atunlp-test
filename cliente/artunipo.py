@@ -56,7 +56,7 @@ class Robot():
     def frenar(self):
         self.clt.enviar("frenar")
 
-    def motor0(self,vel,t=-1): #velocidad,direccion(0 retroceder, 1 avanzar), tiempo (-1 indefinido)
+    def motor0(self,vel,t=-1): #velocidad, tiempo (-1 indefinido)
         if abs(vel)<100 and abs(vel)>=0:
             self.clt.enviar("motor0") #comando del motor
             self.clt.enviar(json.dumps([vel,t if t >=0 else -1]))
@@ -132,6 +132,21 @@ class Robot():
 
         self.clt.flag_msj = False
         return float(self.clt.data)
+
+    def leerLinea(self):
+        self.clt.enviar("leerLinea")
+        while self.clt.flag_msj != True:
+            sleep(0.05)
+        self.clt.flag_msj = False
+        return [int(c) for c in self.clt.data if c not in "[], "]
+
+    def paraGolpes(self):
+        self.clt.enviar("paraGolpes")
+        while self.clt.flag_msj != True:
+            sleep(0.05)
+        self.clt.flag_msj = False
+        return [int(c) for c in self.clt.data if c not in "[], "]
+
 
 
 

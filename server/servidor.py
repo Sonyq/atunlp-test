@@ -17,8 +17,8 @@ class Server():
         thread.start_new_thread(self.conection,())
         self.robot = Robot(1)
         self.out_timer=["motor0","motor1","motores","detener","avanzar","retroceder","girarD","girarI"]
-        self.no_var=["frenar","detener","tomar_foto","liberar_cam","distancia"]
-        self.return_value=["distancia"]
+        self.no_var=["frenar","detener","tomar_foto","liberar_cam","distancia","leerLinea","paraGolpes"]
+        self.return_value=["distancia","leerLinea","paraGolpes"]
         self.dic_sv_comandos = {}
 
     def limpiar(self):
@@ -107,6 +107,8 @@ def main():
             print "IP:",server.host
             while SvEstatus!=False:
                     comando=raw_input()
+        except Exception , err:
+            print repr(err)
 
         finally:
                 server.socket.close()
